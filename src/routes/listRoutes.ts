@@ -2,6 +2,7 @@
 
 import { Router, Request, Response } from 'express';
 import List from '../models/list';
+import User from '../models/user';
 import { generateListId } from '../utils/idGenerator';
 import { protect, AuthRequest } from '../middleware/authMiddleware';
 
@@ -60,6 +61,121 @@ router.get('/:listId', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching list:', error);
     res.status(500).json({ message: 'Failed to fetch list' });
+  }
+});
+
+// Endpoint 3: PUT /api/lists/:listId (UPDATE List Name)
+router.put('/:listId', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const { name } = req.body;
+    const list = await List.findOne({ listId: req.params.listId });
+
+    if (!list) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    // Check ownership
+    if (list.owner.toString() !== req.user?._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update this list' });
+    }
+
+    list.name = name || list.name;
+    await list.save();
+
+    res.json(list);
+  } catch (error) {
+    console.error('Error updating list:', error);
+    res.status(500).json({ message: 'Failed to update list' });
+  }
+});
+
+// Endpoint 4: DELETE /api/lists/:listId (DELETE List)
+router.delete('/:listId', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const list = await List.findOne({ listId: req.params.listId });
+
+    if (!list) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    // Check ownership
+    if (list.owner.toString() !== req.user?._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this list' });
+    }
+
+    await list.deleteOne();
+    res.json({ message: 'List removed' });
+  } catch (error) {
+    console.error('Error deleting list:', error);
+    res.status(500).json({ message: 'Failed to delete list' });
+  }
+});
+
+// Endpoint 5: POST /api/lists/:listId/collaborators (ADD Collaborator)
+router.post('/:listId/collaborators', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const { email } = req.body;
+    const list = await List.findOne({ listId: req.params.listId });
+
+    if (!list) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    if (list.owner.toString() !== req.user?._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to add collaborators' });
+    }
+
+    const userToAdd = await User.findOne({ email });
+    if (!userToAdd) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (list.collaborators.includes(userToAdd._id as any)) {
+      return res.status(400).json({ message: 'User is already a collaborator' });
+    }
+
+    if (list.owner.toString() === userToAdd._id.toString()) {
+      return res.status(400).json({ message: 'Owner cannot be a collaborator' });
+    }
+
+    list.collaborators.push(userToAdd._id as any);
+    await list.save();
+
+    res.json(list);
+  } catch (error) {
+    console.error('Error adding collaborator:', error);
+    res.status(500).json({ message: 'Failed to add collaborator' });
+  }
+});
+
+// Endpoint 6: DELETE /api/lists/:listId/collaborators (REMOVE Collaborator)
+router.delete('/:listId/collaborators', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const { email } = req.body;
+    const list = await List.findOne({ listId: req.params.listId });
+
+    if (!list) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    if (list.owner.toString() !== req.user?._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to remove collaborators' });
+    }
+
+    const userToRemove = await User.findOne({ email });
+    if (!userToRemove) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    list.collaborators = list.collaborators.filter(
+      (collabId) => collabId.toString() !== userToRemove._id.toString()
+    );
+    await list.save();
+
+    res.json(list);
+  } catch (error) {
+    console.error('Error removing collaborator:', error);
+    res.status(500).json({ message: 'Failed to remove collaborator' });
   }
 });
 

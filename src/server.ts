@@ -15,7 +15,7 @@ const app: Application = express();
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer); // Initialize Socket.io
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 const MONGODB_URI = process.env.MONGODB_URI || '';
 
 // Middleware to parse JSON bodies
@@ -49,10 +49,13 @@ app.get('/', (req: Request, res: Response) => {
 // ------------------------------------
 // Start Server
 // ------------------------------------
-connectDB().then(() => {
-  httpServer.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+// Only start the server if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  connectDB().then(() => {
+    httpServer.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
   });
-});
+}
 
 export default app;
