@@ -54,4 +54,44 @@ const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
     }
 };
 
-export { protect };
+// Middleware to check if user has access to a list (owner OR collaborator)
+const protectListAccess = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        // Import List model here to avoid circular dependency
+        const List = (await import('../models/list')).default;
+
+        const { listId } = req.params;
+        const userId = req.user?._id;
+
+        if (!userId) {
+            res.status(401).json({ message: 'Not authorized, user ID missing' });
+            return;
+        }
+
+        const list = await List.findOne({ listId });
+
+        if (!list) {
+            res.status(404).json({ message: 'List not found' });
+            return;
+        }
+
+        // Check if user is owner or collaborator
+        const isOwner = list.owner.toString() === userId.toString();
+        const isCollaborator = list.collaborators.some(
+            (collabId) => collabId.toString() === userId.toString()
+        );
+
+        if (!isOwner && !isCollaborator) {
+            res.status(403).json({ message: 'Not authorized to access this list' });
+            return;
+        }
+
+        // User has access, proceed
+        next();
+    } catch (error) {
+        console.error('Error checking list access:', error);
+        res.status(500).json({ message: 'Server error checking list access' });
+    }
+};
+
+export { protect, protectListAccess };

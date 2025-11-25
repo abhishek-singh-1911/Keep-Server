@@ -3,8 +3,8 @@
 import { Router, Request, Response } from 'express';
 import List from '../models/list';
 import User from '../models/user';
-import { generateListId } from '../utils/idGenerator';
-import { protect, AuthRequest } from '../middleware/authMiddleware';
+import { generateListId, generateItemId } from '../utils/idGenerator';
+import { protect, protectListAccess, AuthRequest } from '../middleware/authMiddleware';
 
 const router = Router();
 
@@ -176,6 +176,97 @@ router.delete('/:listId/collaborators', protect, async (req: AuthRequest, res: R
   } catch (error) {
     console.error('Error removing collaborator:', error);
     res.status(500).json({ message: 'Failed to remove collaborator' });
+  }
+});
+
+// ============================================
+// STEP 5: LIST ITEM CRUD ENDPOINTS
+// ============================================
+
+// Endpoint 7: POST /api/lists/:listId/items (ADD Item)
+router.post('/:listId/items', protect, protectListAccess, async (req: AuthRequest, res: Response) => {
+  try {
+    const { text } = req.body;
+    const list = await List.findOne({ listId: req.params.listId });
+
+    if (!list) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    // Create new item
+    const newItem = {
+      itemId: generateItemId(),
+      text: text || '',
+      completed: false,
+    };
+
+    list.items.push(newItem);
+    await list.save();
+
+    res.status(201).json(list);
+  } catch (error) {
+    console.error('Error adding item:', error);
+    res.status(500).json({ message: 'Failed to add item' });
+  }
+});
+
+// Endpoint 8: PUT /api/lists/:listId/items/:itemId (UPDATE Item)
+router.put('/:listId/items/:itemId', protect, protectListAccess, async (req: AuthRequest, res: Response) => {
+  try {
+    const { text, completed } = req.body;
+    const { listId, itemId } = req.params;
+
+    const list = await List.findOne({ listId });
+
+    if (!list) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    // Find the item
+    const item = list.items.find((i) => i.itemId === itemId);
+
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    // Update item fields
+    if (text !== undefined) item.text = text;
+    if (completed !== undefined) item.completed = completed;
+
+    await list.save();
+
+    res.json(list);
+  } catch (error) {
+    console.error('Error updating item:', error);
+    res.status(500).json({ message: 'Failed to update item' });
+  }
+});
+
+// Endpoint 9: DELETE /api/lists/:listId/items/:itemId (DELETE Item)
+router.delete('/:listId/items/:itemId', protect, protectListAccess, async (req: AuthRequest, res: Response) => {
+  try {
+    const { listId, itemId } = req.params;
+
+    const list = await List.findOne({ listId });
+
+    if (!list) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    // Filter out the item
+    const initialLength = list.items.length;
+    list.items = list.items.filter((i) => i.itemId !== itemId);
+
+    if (list.items.length === initialLength) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    await list.save();
+
+    res.json(list);
+  } catch (error) {
+    console.error('Error deleting item:', error);
+    res.status(500).json({ message: 'Failed to delete item' });
   }
 });
 

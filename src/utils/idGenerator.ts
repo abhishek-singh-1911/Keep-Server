@@ -9,3 +9,8 @@ export const generateListId = (): string => {
 
   return `${letters}-${numbers}`;
 };
+
+// Generates a unique item ID (UUID-like)
+export const generateItemId = (): string => {
+  return `item-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+};
