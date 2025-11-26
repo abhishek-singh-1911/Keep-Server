@@ -14,7 +14,36 @@ dotenv.config();
 
 const app: Application = express();
 const httpServer = createServer(app);
-const io = new SocketIOServer(httpServer); // Initialize Socket.io
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: ["http://localhost:5173"],
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+}); // Initialize Socket.io
+
+io.on("connection", (socket) => {
+  console.log("New client connected:", socket.id);
+
+  socket.on("join_list", (listId) => {
+    socket.join(listId);
+    console.log(`Socket ${socket.id} joined list ${listId}`);
+  });
+
+  socket.on("leave_list", (listId) => {
+    socket.leave(listId);
+    console.log(`Socket ${socket.id} left list ${listId}`);
+  });
+
+  socket.on("update_list", (data) => {
+    const { listId, ...changes } = data;
+    socket.to(listId).emit("list_updated", changes);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+  });
+});
 
 const PORT = process.env.PORT || 5002;
 const MONGODB_URI = process.env.MONGODB_URI || '';

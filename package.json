@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node src/server.ts",
-    "dev": "nodemon src/server.ts",
+    "dev": "ts-node src/server.ts",
+    "start": "nodemon src/server.ts",
     "test": "npx cross-env NODE_ENV=test jest"
   },
   "keywords": [],
