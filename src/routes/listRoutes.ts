@@ -332,4 +332,60 @@ router.delete('/:listId/items/:itemId', protect, protectListAccess, async (req: 
   }
 });
 
+// Endpoint 11: PUT /api/lists/:listId/archive (ARCHIVE/UNARCHIVE List)
+router.put('/:listId/archive', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const { archived } = req.body;
+    const list = await List.findOne({ listId: req.params.listId });
+
+    if (!list) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    // Check if user has access (owner or collaborator)
+    const hasAccess = list.owner.toString() === req.user?._id.toString() ||
+      list.collaborators.some(collabId => collabId.toString() === req.user?._id.toString());
+
+    if (!hasAccess) {
+      return res.status(403).json({ message: 'Not authorized to archive this list' });
+    }
+
+    list.archived = archived !== undefined ? archived : !list.archived;
+    await list.save();
+
+    res.json(list);
+  } catch (error) {
+    console.error('Error archiving list:', error);
+    res.status(500).json({ message: 'Failed to archive list' });
+  }
+});
+
+// Endpoint 12: PUT /api/lists/:listId/pin (PIN/UNPIN List)
+router.put('/:listId/pin', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const { pinned } = req.body;
+    const list = await List.findOne({ listId: req.params.listId });
+
+    if (!list) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    // Check if user has access (owner or collaborator)
+    const hasAccess = list.owner.toString() === req.user?._id.toString() ||
+      list.collaborators.some(collabId => collabId.toString() === req.user?._id.toString());
+
+    if (!hasAccess) {
+      return res.status(403).json({ message: 'Not authorized to pin this list' });
+    }
+
+    list.pinned = pinned !== undefined ? pinned : !list.pinned;
+    await list.save();
+
+    res.json(list);
+  } catch (error) {
+    console.error('Error pinning list:', error);
+    res.status(500).json({ message: 'Failed to pin list' });
+  }
+});
+
 export default router;

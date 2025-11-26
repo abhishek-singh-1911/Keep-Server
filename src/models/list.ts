@@ -15,6 +15,8 @@ export interface IList extends Document {
   owner: mongoose.Types.ObjectId; // Reference to the User model
   collaborators: mongoose.Types.ObjectId[]; // List of users with access
   items: IListItem[];
+  archived: boolean;
+  pinned: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +46,9 @@ const ListSchema: Schema = new Schema({
   }],
 
   items: [ListItemSchema],
+
+  archived: { type: Boolean, default: false },
+  pinned: { type: Boolean, default: false },
 }, {
   timestamps: true,
   toJSON: { virtuals: true }, // Include virtuals when converting to JSON
