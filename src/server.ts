@@ -7,6 +7,7 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import listRoutes from './routes/listRoutes';
 import authRoutes from './routes/authRoutes';
+import cors from "cors";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -20,6 +21,33 @@ const MONGODB_URI = process.env.MONGODB_URI || '';
 
 // Middleware to parse JSON bodies
 app.use(express.json());
+
+// CORS setup with allowed origins
+const allowedOrigins = [
+  "http://localhost:5173",
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        // Log the denied origin for debugging purposes
+        console.log(`CORS Error: Denied origin ${origin}`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    // Specify the allowed methods and headers
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+  })
+);
 
 // Routes:
 app.use('/api/auth', authRoutes);

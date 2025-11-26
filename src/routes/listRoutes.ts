@@ -44,7 +44,25 @@ router.post('/', protect, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Endpoint 2: GET /api/lists/:listId (FETCH a List)
+// Endpoint 2: GET /api/lists (GET All Lists for User)
+router.get('/', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    // Find lists where user is owner OR collaborator
+    const lists = await List.find({
+      $or: [
+        { owner: req.user?._id },
+        { collaborators: req.user?._id }
+      ]
+    }).sort({ updatedAt: -1 }); // Sort by newest first
+
+    res.status(200).json(lists);
+  } catch (error) {
+    console.error('Error fetching lists:', error);
+    res.status(500).json({ message: 'Failed to fetch lists' });
+  }
+});
+
+// Endpoint 3: GET /api/lists/:listId (GET List)
 router.get('/:listId', async (req: Request, res: Response) => {
   try {
     const list = await List.findOne({ listId: req.params.listId });
