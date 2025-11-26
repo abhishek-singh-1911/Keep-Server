@@ -25,6 +25,7 @@ http://localhost:5002/api
 | POST | `/lists/:listId/collaborators` | ✅ | Owner | Add collaborator |
 | DELETE | `/lists/:listId/collaborators` | ✅ | Owner | Remove collaborator |
 | POST | `/lists/:listId/items` | ✅ | Owner + Collab | Add item |
+| PUT | `/lists/:listId/items/reorder` | ✅ | Owner + Collab | Reorder items |
 | PUT | `/lists/:listId/items/:itemId` | ✅ | Owner + Collab | Update item |
 | DELETE | `/lists/:listId/items/:itemId` | ✅ | Owner + Collab | Delete item |
 
@@ -306,6 +307,67 @@ Authorization: Bearer <token>
 
 ---
 
+### Reorder Items
+
+```http
+PUT /api/lists/gftr-1234/items/reorder
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "itemIds": ["item-3-id", "item-1-id", "item-2-id"]
+}
+```
+
+**Description:**  
+Reorder items in a list by providing an array of itemIds in the desired order. Each item will be assigned an `order` field based on its position in the array.
+
+**Request Body:**
+- `itemIds` (array, required): Array of itemIds in the desired order
+
+**Success Response (200):** Full list object with items in new order
+
+**Example Response:**
+```json
+{
+  "listId": "gftr-1234",
+  "name": "Shopping List",
+  "items": [
+    {
+      "itemId": "item-3-id",
+      "text": "Item 3",
+      "completed": false,
+      "order": 0
+    },
+    {
+      "itemId": "item-1-id",
+      "text": "Item 1",
+      "completed": true,
+      "order": 1
+    },
+    {
+      "itemId": "item-2-id",
+      "text": "Item 2",
+      "completed": false,
+      "order": 2
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `400` - Invalid itemIds / itemIds must be an array
+- `401` - Not authenticated
+- `403` - Not owner or collaborator
+- `404` - List not found
+
+**Use Cases:**
+- Drag and drop reordering in UI
+- Priority sorting
+- Custom organization
+
+---
+
 ## 🔑 Authentication Header Format
 
 All protected endpoints require the `Authorization` header:
@@ -366,7 +428,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 {
   "itemId": "item-1234567890-xyz",
   "text": "Buy milk",
-  "completed": false
+  "completed": false,
+  "order": 0
 }
 ```
 
@@ -430,8 +493,11 @@ curl -X PUT http://localhost:5002/api/lists/LIST_ID/items/ITEM_ID \
 - List IDs are short, readable (e.g., "gftr-1234")
 - Item IDs are timestamp-based (e.g., "item-1234567890-xyz")
 - Passwords are hashed with bcrypt (never stored in plain text)
+- Items include an `order` field for custom sorting (0-indexed)
+- Items are automatically sorted by `order` field when returned
 
 ---
 
-**Last Updated:** 2025-11-25  
-**API Version:** 1.0.0
+**Last Updated:** 2025-11-26  
+**API Version:** 1.1.0 (Added item reordering)
+```

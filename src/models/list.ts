@@ -5,6 +5,7 @@ export interface IListItem {
   itemId: string; // Unique ID for the item (UUID)
   text: string;
   completed: boolean;
+  order: number; // Position/index for custom ordering
 }
 
 // Interface for the List Document
@@ -22,6 +23,7 @@ const ListItemSchema: Schema = new Schema({
   itemId: { type: String, required: true },
   text: { type: String, required: true },
   completed: { type: Boolean, default: false },
+  order: { type: Number, required: true, default: 0 },
 }, { _id: false }); // Prevent Mongoose from creating _id for subdocuments
 
 const ListSchema: Schema = new Schema({

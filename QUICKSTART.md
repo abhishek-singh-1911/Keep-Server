@@ -8,6 +8,12 @@
 
 ### 1. Prerequisites Check
 
+**Required Software:**
+- **Node.js** (v16 or higher) - [Download](https://nodejs.org/)
+- **npm** (comes with Node.js)
+- **MongoDB Atlas account** (free tier available) - [Sign up](https://www.mongodb.com/cloud/atlas)
+
+**Check your installation:**
 ```bash
 # Check Node.js version (need v16+)
 node --version
@@ -65,7 +71,7 @@ curl http://localhost:5002
 # Run all tests
 npm test -- --runInBand
 
-# Expected output: 34 tests passing ✅
+# Expected output: 41 tests passing ✅
 ```
 
 ---
@@ -135,6 +141,25 @@ curl -X POST http://localhost:5002/api/lists/LIST_ID/items \
    - Start with `/src/server.ts` - Main entry point
    - Check `/src/routes/` - API endpoints
    - Review `/src/tests/` - Test examples
+   
+   **Project Structure:**
+   ```
+   server/
+   ├── src/
+   │   ├── server.ts          # Entry point
+   │   ├── routes/            # API route definitions
+   │   │   ├── authRoutes.ts  # Authentication endpoints
+   │   │   └── listRoutes.ts  # List & item endpoints
+   │   ├── middleware/        # Express middleware
+   │   │   └── authMiddleware.ts
+   │   ├── models/            # Mongoose data models
+   │   │   ├── user.ts
+   │   │   └── list.ts
+   │   ├── tests/             # Test suites
+   │   └── utils/             # Utility functions
+   ├── .env                   # Environment variables
+   └── package.json           # Dependencies
+   ```
 
 3. **Try the API**
    - Use Postman or Thunder Client

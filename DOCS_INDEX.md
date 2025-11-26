@@ -117,12 +117,13 @@
   - Update item text
   - Toggle item completion
   - Delete items
+  - Reorder items (drag & drop support)
   - Owner + Collaborator access
 
 ### 📈 Test Coverage
 
-- **34 tests passing** ✅
-- **3 test suites** (auth, list CRUD, item CRUD)
+- **41 tests passing** ✅
+- **4 test suites** (auth, list CRUD, item CRUD, item reorder)
 - **100% endpoint coverage**
 
 ### 🔜 Planned Features
@@ -246,6 +247,7 @@ npm test -- --runInBand
 - List CRUD: 3 tests
 - Collaboration: 7 tests
 - Item CRUD: 16 tests
+- Item Reordering: 7 tests
 - Authorization: 3 tests
 
 ### Writing Tests
@@ -343,6 +345,7 @@ npm start
 | `/api/lists/:listId/collaborators` | POST | ✅ | Owner |
 | `/api/lists/:listId/collaborators` | DELETE | ✅ | Owner |
 | `/api/lists/:listId/items` | POST | ✅ | Owner + Collab |
+| `/api/lists/:listId/items/reorder` | PUT | ✅ | Owner + Collab |
 | `/api/lists/:listId/items/:itemId` | PUT | ✅ | Owner + Collab |
 | `/api/lists/:listId/items/:itemId` | DELETE | ✅ | Owner + Collab |
 
@@ -355,16 +358,17 @@ npm start
 ✅ **Complete CRUD Operations** - Full list and item management  
 ✅ **Collaboration System** - Multi-user access control  
 ✅ **Secure Authentication** - JWT with bcrypt password hashing  
-✅ **Comprehensive Tests** - 34 tests covering all endpoints  
-✅ **Well Documented** - 5 detailed documentation files  
+✅ **Comprehensive Tests** - 41 tests covering all endpoints  
+✅ **Well Documented** - 4 detailed documentation files  
+✅ **Item Ordering** - Full drag & drop support  
 ✅ **Production Ready** - Error handling, validation, security  
 ✅ **TypeScript** - Type safety and better DX  
 ✅ **Scalable Architecture** - Ready for real-time features  
 
 ---
 
-**Last Updated:** 2025-11-25  
-**Version:** 1.0.0  
+**Last Updated:** 2025-11-26  
+**Version:** 1.1.0 (Item ordering added)  
 **Status:** Production-ready core functionality ✅
 
 ---

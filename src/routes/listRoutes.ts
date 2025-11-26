@@ -193,11 +193,12 @@ router.post('/:listId/items', protect, protectListAccess, async (req: AuthReques
       return res.status(404).json({ message: 'List not found' });
     }
 
-    // Create new item
+    // Create new item with order set to end of list
     const newItem = {
       itemId: generateItemId(),
       text: text || '',
       completed: false,
+      order: list.items.length, // Set order to current length (0-indexed)
     };
 
     list.items.push(newItem);
@@ -207,6 +208,49 @@ router.post('/:listId/items', protect, protectListAccess, async (req: AuthReques
   } catch (error) {
     console.error('Error adding item:', error);
     res.status(500).json({ message: 'Failed to add item' });
+  }
+});
+
+// Endpoint 10: PUT /api/lists/:listId/items/reorder (REORDER Items)
+// IMPORTANT: This must come BEFORE the /:itemId route to avoid route conflicts
+router.put('/:listId/items/reorder', protect, protectListAccess, async (req: AuthRequest, res: Response) => {
+  try {
+    const { itemIds } = req.body; // Array of itemIds in desired order
+    const list = await List.findOne({ listId: req.params.listId });
+
+    if (!list) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    if (!itemIds || !Array.isArray(itemIds)) {
+      return res.status(400).json({ message: 'itemIds must be an array' });
+    }
+
+    // Validate all itemIds exist
+    const existingItemIds = list.items.map(item => item.itemId);
+    const allIdsValid = itemIds.every(id => existingItemIds.includes(id));
+
+    if (!allIdsValid) {
+      return res.status(400).json({ message: 'Invalid itemIds provided' });
+    }
+
+    // Update order for each item
+    itemIds.forEach((itemId, index) => {
+      const item = list.items.find(i => i.itemId === itemId);
+      if (item) {
+        item.order = index;
+      }
+    });
+
+    // Sort items by order
+    list.items.sort((a, b) => a.order - b.order);
+
+    await list.save();
+
+    res.json(list);
+  } catch (error) {
+    console.error('Error reordering items:', error);
+    res.status(500).json({ message: 'Failed to reorder items' });
   }
 });
 
