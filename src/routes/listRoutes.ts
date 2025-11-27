@@ -53,12 +53,63 @@ router.get('/', protect, async (req: AuthRequest, res: Response) => {
         { owner: req.user?._id },
         { collaborators: req.user?._id }
       ]
-    }).sort({ updatedAt: -1 }); // Sort by newest first
+    }).sort({ order: 1, updatedAt: -1 }); // Sort by custom order, then newest first
 
     res.status(200).json(lists);
   } catch (error) {
     console.error('Error fetching lists:', error);
     res.status(500).json({ message: 'Failed to fetch lists' });
+  }
+});
+
+// Endpoint 13: PUT /api/lists/reorder (REORDER Lists)
+// IMPORTANT: This must come BEFORE the /:listId route to avoid route conflicts
+router.put('/reorder', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const { listIds } = req.body; // Array of listIds in desired order
+
+    if (!listIds || !Array.isArray(listIds)) {
+      return res.status(400).json({ message: 'listIds must be an array' });
+    }
+
+    // Find all lists that belong to the user
+    const lists = await List.find({
+      $or: [
+        { owner: req.user?._id },
+        { collaborators: req.user?._id }
+      ]
+    });
+
+    // Validate all listIds exist and belong to user
+    const userListIds = lists.map(list => list.listId);
+    const allIdsValid = listIds.every((id: string) => userListIds.includes(id));
+
+    if (!allIdsValid) {
+      return res.status(400).json({ message: 'Invalid listIds provided' });
+    }
+
+    // Update order for each list
+    const updatePromises = listIds.map((listId: string, index: number) => {
+      return List.updateOne(
+        { listId },
+        { $set: { order: index } }
+      );
+    });
+
+    await Promise.all(updatePromises);
+
+    // Fetch updated lists
+    const updatedLists = await List.find({
+      $or: [
+        { owner: req.user?._id },
+        { collaborators: req.user?._id }
+      ]
+    }).sort({ order: 1 });
+
+    res.json(updatedLists);
+  } catch (error) {
+    console.error('Error reordering lists:', error);
+    res.status(500).json({ message: 'Failed to reorder lists' });
   }
 });
 

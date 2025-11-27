@@ -17,6 +17,7 @@ export interface IList extends Document {
   items: IListItem[];
   archived: boolean;
   pinned: boolean;
+  order: number; // Position/index for custom ordering of lists
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,6 +50,7 @@ const ListSchema: Schema = new Schema({
 
   archived: { type: Boolean, default: false },
   pinned: { type: Boolean, default: false },
+  order: { type: Number, default: 0 },
 }, {
   timestamps: true,
   toJSON: { virtuals: true }, // Include virtuals when converting to JSON
