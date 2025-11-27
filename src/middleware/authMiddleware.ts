@@ -76,12 +76,13 @@ const protectListAccess = async (req: AuthRequest, res: Response, next: NextFunc
         }
 
         // Check if user is owner or collaborator
+        // Check if user is owner or collaborator
         const isOwner = list.owner.toString() === userId.toString();
-        const isCollaborator = list.collaborators.some(
-            (collabId) => collabId.toString() === userId.toString()
+        const collaborator = list.collaborators.find(
+            (c) => c.userId.toString() === userId.toString()
         );
 
-        if (!isOwner && !isCollaborator) {
+        if (!isOwner && !collaborator) {
             res.status(403).json({ message: 'Not authorized to access this list' });
             return;
         }
@@ -94,4 +95,42 @@ const protectListAccess = async (req: AuthRequest, res: Response, next: NextFunc
     }
 };
 
-export { protect, protectListAccess };
+// Middleware to check if user has EDIT access to a list (owner OR collaborator with 'edit' permission)
+const protectListEditAccess = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const List = (await import('../models/list')).default;
+        const { listId } = req.params;
+        const userId = req.user?._id;
+
+        if (!userId) {
+            res.status(401).json({ message: 'Not authorized, user ID missing' });
+            return;
+        }
+
+        const list = await List.findOne({ listId });
+
+        if (!list) {
+            res.status(404).json({ message: 'List not found' });
+            return;
+        }
+
+        const isOwner = list.owner.toString() === userId.toString();
+        const collaborator = list.collaborators.find(
+            (c) => c.userId.toString() === userId.toString()
+        );
+
+        const hasEditAccess = isOwner || (collaborator && collaborator.permission === 'edit');
+
+        if (!hasEditAccess) {
+            res.status(403).json({ message: 'Not authorized to edit this list' });
+            return;
+        }
+
+        next();
+    } catch (error) {
+        console.error('Error checking list edit access:', error);
+        res.status(500).json({ message: 'Server error checking list edit access' });
+    }
+};
+
+export { protect, protectListAccess, protectListEditAccess };

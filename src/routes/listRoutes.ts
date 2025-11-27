@@ -4,7 +4,7 @@ import { Router, Request, Response } from 'express';
 import List from '../models/list';
 import User from '../models/user';
 import { generateListId, generateItemId } from '../utils/idGenerator';
-import { protect, protectListAccess, AuthRequest } from '../middleware/authMiddleware';
+import { protect, protectListAccess, protectListEditAccess, AuthRequest } from '../middleware/authMiddleware';
 
 const router = Router();
 
@@ -51,9 +51,10 @@ router.get('/', protect, async (req: AuthRequest, res: Response) => {
     const lists = await List.find({
       $or: [
         { owner: req.user?._id },
-        { collaborators: req.user?._id }
+        { 'collaborators.userId': req.user?._id }
       ]
-    }).sort({ order: 1, updatedAt: -1 }); // Sort by custom order, then newest first
+    }).sort({ order: 1, updatedAt: -1 })
+      .populate('collaborators.userId', 'name email'); // Populate collaborator details
 
     res.status(200).json(lists);
   } catch (error) {
@@ -76,7 +77,7 @@ router.put('/reorder', protect, async (req: AuthRequest, res: Response) => {
     const lists = await List.find({
       $or: [
         { owner: req.user?._id },
-        { collaborators: req.user?._id }
+        { 'collaborators.userId': req.user?._id }
       ]
     });
 
@@ -102,9 +103,10 @@ router.put('/reorder', protect, async (req: AuthRequest, res: Response) => {
     const updatedLists = await List.find({
       $or: [
         { owner: req.user?._id },
-        { collaborators: req.user?._id }
+        { 'collaborators.userId': req.user?._id }
       ]
-    }).sort({ order: 1 });
+    }).sort({ order: 1 })
+      .populate('collaborators.userId', 'name email');
 
     res.json(updatedLists);
   } catch (error) {
@@ -116,7 +118,8 @@ router.put('/reorder', protect, async (req: AuthRequest, res: Response) => {
 // Endpoint 3: GET /api/lists/:listId (GET List)
 router.get('/:listId', async (req: Request, res: Response) => {
   try {
-    const list = await List.findOne({ listId: req.params.listId });
+    const list = await List.findOne({ listId: req.params.listId })
+      .populate('collaborators.userId', 'name email');
 
     if (!list) {
       return res.status(404).json({ message: 'List not found.' });
@@ -137,13 +140,14 @@ router.get('/:listId', async (req: Request, res: Response) => {
 router.put('/:listId', protect, async (req: AuthRequest, res: Response) => {
   try {
     const { name } = req.body;
-    const list = await List.findOne({ listId: req.params.listId });
+    const list = await List.findOne({ listId: req.params.listId })
+      .populate('collaborators.userId', 'name email');
 
     if (!list) {
       return res.status(404).json({ message: 'List not found' });
     }
 
-    // Check ownership
+    // Only owner can update list name
     if (list.owner.toString() !== req.user?._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this list' });
     }
@@ -199,7 +203,7 @@ router.post('/:listId/collaborators', protect, async (req: AuthRequest, res: Res
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (list.collaborators.includes(userToAdd._id as any)) {
+    if (list.collaborators.some(c => c.userId.toString() === userToAdd._id.toString())) {
       return res.status(400).json({ message: 'User is already a collaborator' });
     }
 
@@ -207,10 +211,17 @@ router.post('/:listId/collaborators', protect, async (req: AuthRequest, res: Res
       return res.status(400).json({ message: 'Owner cannot be a collaborator' });
     }
 
-    list.collaborators.push(userToAdd._id as any);
+    list.collaborators.push({
+      userId: userToAdd._id as any,
+      permission: 'view' // Default permission
+    });
     await list.save();
 
-    res.json(list);
+    // Re-fetch to get populated data
+    const populatedList = await List.findOne({ listId: req.params.listId })
+      .populate('collaborators.userId', 'name email');
+
+    res.json(populatedList);
   } catch (error) {
     console.error('Error adding collaborator:', error);
     res.status(500).json({ message: 'Failed to add collaborator' });
@@ -237,14 +248,63 @@ router.delete('/:listId/collaborators', protect, async (req: AuthRequest, res: R
     }
 
     list.collaborators = list.collaborators.filter(
-      (collabId) => collabId.toString() !== userToRemove._id.toString()
+      (collab) => collab.userId.toString() !== userToRemove._id.toString()
     );
     await list.save();
 
-    res.json(list);
+    // Re-fetch to get populated data
+    const populatedList = await List.findOne({ listId: req.params.listId })
+      .populate('collaborators.userId', 'name email');
+
+    res.json(populatedList);
   } catch (error) {
     console.error('Error removing collaborator:', error);
     res.status(500).json({ message: 'Failed to remove collaborator' });
+  }
+});
+
+// Endpoint 14: PUT /api/lists/:listId/collaborators (UPDATE Collaborator Permission)
+router.put('/:listId/collaborators', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    const { email, permission } = req.body;
+    const list = await List.findOne({ listId: req.params.listId });
+
+    if (!list) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    if (list.owner.toString() !== req.user?._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update permissions' });
+    }
+
+    const userToUpdate = await User.findOne({ email });
+    if (!userToUpdate) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const collaborator = list.collaborators.find(
+      (c) => c.userId.toString() === userToUpdate._id.toString()
+    );
+
+    if (!collaborator) {
+      return res.status(404).json({ message: 'User is not a collaborator' });
+    }
+
+    if (!['view', 'edit'].includes(permission)) {
+      return res.status(400).json({ message: 'Invalid permission' });
+    }
+
+    collaborator.permission = permission;
+    await list.save();
+
+    // Re-fetch to get populated data
+    const populatedList = await List.findOne({ listId: req.params.listId })
+      .populate('collaborators.userId', 'name email');
+
+    res.json(populatedList);
+  } catch (error) {
+    console.error('Error updating collaborator permission:', error);
+    res.status(500).json({ message: 'Failed to update collaborator permission' });
   }
 });
 
@@ -253,7 +313,7 @@ router.delete('/:listId/collaborators', protect, async (req: AuthRequest, res: R
 // ============================================
 
 // Endpoint 7: POST /api/lists/:listId/items (ADD Item)
-router.post('/:listId/items', protect, protectListAccess, async (req: AuthRequest, res: Response) => {
+router.post('/:listId/items', protect, protectListEditAccess, async (req: AuthRequest, res: Response) => {
   try {
     const { text } = req.body;
     const list = await List.findOne({ listId: req.params.listId });
@@ -282,7 +342,7 @@ router.post('/:listId/items', protect, protectListAccess, async (req: AuthReques
 
 // Endpoint 10: PUT /api/lists/:listId/items/reorder (REORDER Items)
 // IMPORTANT: This must come BEFORE the /:itemId route to avoid route conflicts
-router.put('/:listId/items/reorder', protect, protectListAccess, async (req: AuthRequest, res: Response) => {
+router.put('/:listId/items/reorder', protect, protectListEditAccess, async (req: AuthRequest, res: Response) => {
   try {
     const { itemIds } = req.body; // Array of itemIds in desired order
     const list = await List.findOne({ listId: req.params.listId });
@@ -324,7 +384,7 @@ router.put('/:listId/items/reorder', protect, protectListAccess, async (req: Aut
 });
 
 // Endpoint 8: PUT /api/lists/:listId/items/:itemId (UPDATE Item)
-router.put('/:listId/items/:itemId', protect, protectListAccess, async (req: AuthRequest, res: Response) => {
+router.put('/:listId/items/:itemId', protect, protectListEditAccess, async (req: AuthRequest, res: Response) => {
   try {
     const { text, completed } = req.body;
     const { listId, itemId } = req.params;
@@ -356,7 +416,7 @@ router.put('/:listId/items/:itemId', protect, protectListAccess, async (req: Aut
 });
 
 // Endpoint 9: DELETE /api/lists/:listId/items/:itemId (DELETE Item)
-router.delete('/:listId/items/:itemId', protect, protectListAccess, async (req: AuthRequest, res: Response) => {
+router.delete('/:listId/items/:itemId', protect, protectListEditAccess, async (req: AuthRequest, res: Response) => {
   try {
     const { listId, itemId } = req.params;
 
@@ -393,11 +453,10 @@ router.put('/:listId/archive', protect, async (req: AuthRequest, res: Response) 
       return res.status(404).json({ message: 'List not found' });
     }
 
-    // Check if user has access (owner or collaborator)
-    const hasAccess = list.owner.toString() === req.user?._id.toString() ||
-      list.collaborators.some(collabId => collabId.toString() === req.user?._id.toString());
+    // Check if user is OWNER (only owner can archive/delete)
+    const isOwner = list.owner.toString() === req.user?._id.toString();
 
-    if (!hasAccess) {
+    if (!isOwner) {
       return res.status(403).json({ message: 'Not authorized to archive this list' });
     }
 
@@ -421,11 +480,10 @@ router.put('/:listId/pin', protect, async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'List not found' });
     }
 
-    // Check if user has access (owner or collaborator)
-    const hasAccess = list.owner.toString() === req.user?._id.toString() ||
-      list.collaborators.some(collabId => collabId.toString() === req.user?._id.toString());
+    // Check if user is OWNER (only owner can pin)
+    const isOwner = list.owner.toString() === req.user?._id.toString();
 
-    if (!hasAccess) {
+    if (!isOwner) {
       return res.status(403).json({ message: 'Not authorized to pin this list' });
     }
 

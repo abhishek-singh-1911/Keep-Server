@@ -40,6 +40,24 @@ io.on("connection", (socket) => {
     socket.to(listId).emit("list_updated", changes);
   });
 
+  socket.on("collaborator_added", (data) => {
+    const { listId, userId } = data;
+    // Broadcast to all users in the list room (including the new collaborator)
+    io.to(listId).emit("collaborator_added", { listId });
+  });
+
+  socket.on("collaborator_removed", (data) => {
+    const { listId, userId } = data;
+    // Broadcast to all users in the list room
+    io.to(listId).emit("collaborator_removed", { listId });
+  });
+
+  socket.on("permission_changed", (data) => {
+    const { listId, userId, permission } = data;
+    // Broadcast to all users in the list room
+    io.to(listId).emit("permission_changed", { listId });
+  });
+
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
   });
@@ -115,4 +133,5 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
+export { app, httpServer, io };
 export default app;

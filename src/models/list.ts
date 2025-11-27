@@ -13,7 +13,10 @@ export interface IList extends Document {
   listId: string; // The short, unique ID (e.g., "KEEF78")
   name: string;
   owner: mongoose.Types.ObjectId; // Reference to the User model
-  collaborators: mongoose.Types.ObjectId[]; // List of users with access
+  collaborators: {
+    userId: mongoose.Types.ObjectId;
+    permission: 'view' | 'edit';
+  }[]; // List of users with access
   items: IListItem[];
   archived: boolean;
   pinned: boolean;
@@ -41,9 +44,17 @@ const ListSchema: Schema = new Schema({
   },
 
   collaborators: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    default: [],
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    permission: {
+      type: String,
+      enum: ['view', 'edit'],
+      default: 'view'
+    },
+    _id: false
   }],
 
   items: [ListItemSchema],
