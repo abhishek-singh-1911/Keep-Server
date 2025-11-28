@@ -27,7 +27,7 @@
 - Create and manage lists
 - Add collaborators to lists
 - Add, update, and delete items within lists
-- Real-time collaboration (planned for Step 6)
+- Real-time collaboration (Implemented)
 
 ### Key Features
 - ✅ User authentication with JWT
@@ -35,7 +35,8 @@
 - ✅ Collaboration system (add/remove collaborators)
 - ✅ Item CRUD operations
 - ✅ Owner-only and collaborative access controls
-- ✅ Comprehensive test coverage (34 tests)
+- ✅ Real-time collaboration (Socket.IO)
+- ✅ Comprehensive test coverage (41 tests)
 
 ---
 
@@ -48,7 +49,7 @@
 - **Database**: MongoDB (via Mongoose ODM)
 - **Authentication**: JWT (JSON Web Tokens)
 - **Password Hashing**: bcryptjs
-- **Real-time** (planned): Socket.IO
+- **Real-time**: Socket.IO
 
 ### Development Tools
 - **Testing**: Jest + Supertest
@@ -73,7 +74,8 @@ keep/server/
 │   ├── tests/
 │   │   ├── auth.test.ts            # Auth & list creation tests
 │   │   ├── list_crud.test.ts       # List CRUD & collaboration tests
-│   │   └── list_items.test.ts      # Item CRUD tests
+│   │   ├── list_items.test.ts      # Item CRUD tests
+│   │   └── archive-collaborator.test.ts # Archive & collaborator tests
 │   ├── utils/
 │   │   └── idGenerator.ts          # ID generation utilities
 │   └── server.ts                   # Main server file
@@ -557,7 +559,8 @@ We use **Jest** and **Supertest** for testing. All tests are in `/src/tests/`.
 | `auth.test.ts` | 8 | Authentication & list creation |
 | `list_crud.test.ts` | 10 | List CRUD & collaboration |
 | `list_items.test.ts` | 16 | Item CRUD operations |
-| **Total** | **34** | **Complete backend coverage** |
+| `archive-collaborator.test.ts` | 7 | Archive behavior & permissions |
+| **Total** | **41** | **Complete backend coverage** |
 
 ### Running Tests
 

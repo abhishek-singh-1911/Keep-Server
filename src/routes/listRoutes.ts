@@ -461,9 +461,19 @@ router.put('/:listId/archive', protect, async (req: AuthRequest, res: Response) 
     }
 
     list.archived = archived !== undefined ? archived : !list.archived;
+
+    // If archiving, remove all collaborators
+    if (list.archived) {
+      list.collaborators = [];
+    }
+
     await list.save();
 
-    res.json(list);
+    // Re-fetch to get populated data
+    const populatedList = await List.findOne({ listId: req.params.listId })
+      .populate('collaborators.userId', 'name email');
+
+    res.json(populatedList);
   } catch (error) {
     console.error('Error archiving list:', error);
     res.status(500).json({ message: 'Failed to archive list' });
