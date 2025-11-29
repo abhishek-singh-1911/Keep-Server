@@ -78,7 +78,8 @@ app.use(express.json());
 // CORS setup with allowed origins
 const allowedOrigins = [
   "http://localhost:5173",
-  CLIENT_URL
+  CLIENT_URL,
+  "https://keep-mu.vercel.app"
 ];
 
 app.use(
