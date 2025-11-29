@@ -14,9 +14,11 @@ dotenv.config();
 
 const app: Application = express();
 const httpServer = createServer(app);
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: ["http://localhost:5173"],
+    origin: [CLIENT_URL, "http://localhost:5173"],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -76,6 +78,7 @@ app.use(express.json());
 // CORS setup with allowed origins
 const allowedOrigins = [
   "http://localhost:5173",
+  CLIENT_URL
 ];
 
 app.use(

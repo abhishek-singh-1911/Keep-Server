@@ -4,8 +4,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node src/server.ts",
-    "start": "nodemon src/server.ts",
-    "test": "npx cross-env NODE_ENV=test jest"
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "npx cross-env NODE_ENV=test jest",
+    "serve": "nodemon src/server.ts"
   },
   "keywords": [],
   "author": "",
