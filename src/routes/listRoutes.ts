@@ -18,6 +18,7 @@ router.post('/', protect, async (req: AuthRequest, res: Response) => {
     }
 
     const { name } = req.body;
+    console.log(`[List] Creating new list for user: ${ownerId}, name: ${name}`);
 
     // 1. Generate a unique List ID
     let listId = generateListId();
@@ -48,6 +49,7 @@ router.post('/', protect, async (req: AuthRequest, res: Response) => {
 router.get('/', protect, async (req: AuthRequest, res: Response) => {
   try {
     // Find lists where user is owner OR collaborator
+    console.log(`[List] Fetching all lists for user: ${req.user?._id}`);
     const lists = await List.find({
       $or: [
         { owner: req.user?._id },
@@ -68,6 +70,7 @@ router.get('/', protect, async (req: AuthRequest, res: Response) => {
 router.put('/reorder', protect, async (req: AuthRequest, res: Response) => {
   try {
     const { listIds } = req.body; // Array of listIds in desired order
+    console.log(`[List] Reordering lists for user: ${req.user?._id}`);
 
     if (!listIds || !Array.isArray(listIds)) {
       return res.status(400).json({ message: 'listIds must be an array' });
@@ -118,6 +121,7 @@ router.put('/reorder', protect, async (req: AuthRequest, res: Response) => {
 // Endpoint 3: GET /api/lists/:listId (GET List)
 router.get('/:listId', async (req: Request, res: Response) => {
   try {
+    console.log(`[List] Fetching list: ${req.params.listId}`);
     const list = await List.findOne({ listId: req.params.listId })
       .populate('collaborators.userId', 'name email');
 
@@ -140,6 +144,7 @@ router.get('/:listId', async (req: Request, res: Response) => {
 router.put('/:listId', protect, async (req: AuthRequest, res: Response) => {
   try {
     const { name } = req.body;
+    console.log(`[List] Updating list name: ${req.params.listId}, new name: ${name}`);
     const list = await List.findOne({ listId: req.params.listId })
       .populate('collaborators.userId', 'name email');
 
@@ -166,6 +171,7 @@ router.put('/:listId', protect, async (req: AuthRequest, res: Response) => {
 router.delete('/:listId', protect, async (req: AuthRequest, res: Response) => {
   try {
     const list = await List.findOne({ listId: req.params.listId });
+    console.log(`[List] Deleting list: ${req.params.listId}`);
 
     if (!list) {
       return res.status(404).json({ message: 'List not found' });
@@ -188,6 +194,7 @@ router.delete('/:listId', protect, async (req: AuthRequest, res: Response) => {
 router.post('/:listId/collaborators', protect, async (req: AuthRequest, res: Response) => {
   try {
     const { email } = req.body;
+    console.log(`[List] Adding collaborator ${email} to list ${req.params.listId}`);
     const list = await List.findOne({ listId: req.params.listId });
 
     if (!list) {
@@ -232,6 +239,7 @@ router.post('/:listId/collaborators', protect, async (req: AuthRequest, res: Res
 router.delete('/:listId/collaborators', protect, async (req: AuthRequest, res: Response) => {
   try {
     const { email } = req.body;
+    console.log(`[List] Removing collaborator ${email} from list ${req.params.listId}`);
     const list = await List.findOne({ listId: req.params.listId });
 
     if (!list) {
@@ -267,6 +275,7 @@ router.delete('/:listId/collaborators', protect, async (req: AuthRequest, res: R
 router.put('/:listId/collaborators', protect, async (req: AuthRequest, res: Response) => {
   try {
     const { email, permission } = req.body;
+    console.log(`[List] Updating permission for ${email} in list ${req.params.listId} to ${permission}`);
     const list = await List.findOne({ listId: req.params.listId });
 
     if (!list) {
@@ -316,6 +325,7 @@ router.put('/:listId/collaborators', protect, async (req: AuthRequest, res: Resp
 router.post('/:listId/items', protect, protectListEditAccess, async (req: AuthRequest, res: Response) => {
   try {
     const { text } = req.body;
+    console.log(`[List] Adding item to list ${req.params.listId}: ${text}`);
     const list = await List.findOne({ listId: req.params.listId });
 
     if (!list) {
@@ -345,6 +355,7 @@ router.post('/:listId/items', protect, protectListEditAccess, async (req: AuthRe
 router.put('/:listId/items/reorder', protect, protectListEditAccess, async (req: AuthRequest, res: Response) => {
   try {
     const { itemIds } = req.body; // Array of itemIds in desired order
+    console.log(`[List] Reordering items in list ${req.params.listId}`);
     const list = await List.findOne({ listId: req.params.listId });
 
     if (!list) {
@@ -388,6 +399,7 @@ router.put('/:listId/items/:itemId', protect, protectListEditAccess, async (req:
   try {
     const { text, completed } = req.body;
     const { listId, itemId } = req.params;
+    console.log(`[List] Updating item ${itemId} in list ${listId}`);
 
     const list = await List.findOne({ listId });
 
@@ -419,6 +431,7 @@ router.put('/:listId/items/:itemId', protect, protectListEditAccess, async (req:
 router.delete('/:listId/items/:itemId', protect, protectListEditAccess, async (req: AuthRequest, res: Response) => {
   try {
     const { listId, itemId } = req.params;
+    console.log(`[List] Deleting item ${itemId} from list ${listId}`);
 
     const list = await List.findOne({ listId });
 
@@ -447,6 +460,7 @@ router.delete('/:listId/items/:itemId', protect, protectListEditAccess, async (r
 router.put('/:listId/archive', protect, async (req: AuthRequest, res: Response) => {
   try {
     const { archived } = req.body;
+    console.log(`[List] Setting archive status for list ${req.params.listId} to ${archived}`);
     const list = await List.findOne({ listId: req.params.listId });
 
     if (!list) {
@@ -484,6 +498,7 @@ router.put('/:listId/archive', protect, async (req: AuthRequest, res: Response) 
 router.put('/:listId/pin', protect, async (req: AuthRequest, res: Response) => {
   try {
     const { pinned } = req.body;
+    console.log(`[List] Setting pin status for list ${req.params.listId} to ${pinned}`);
     const list = await List.findOne({ listId: req.params.listId });
 
     if (!list) {

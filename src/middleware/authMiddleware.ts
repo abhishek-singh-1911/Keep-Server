@@ -34,6 +34,7 @@ const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
             const user = await User.findById(decoded.id).select('-password');
 
             if (!user) {
+                console.warn(`[AuthMiddleware] User not found for token ID: ${decoded.id}`);
                 res.status(401).json({ message: 'Not authorized, user not found' });
                 return;
             }
@@ -50,6 +51,7 @@ const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
         }
     } else {
         // No token provided in the header
+        console.warn('[AuthMiddleware] No token provided');
         res.status(401).json({ message: 'Not authorized, no token' });
     }
 };
@@ -83,6 +85,7 @@ const protectListAccess = async (req: AuthRequest, res: Response, next: NextFunc
         );
 
         if (!isOwner && !collaborator) {
+            console.warn(`[AuthMiddleware] Access denied for user ${userId} to list ${listId}`);
             res.status(403).json({ message: 'Not authorized to access this list' });
             return;
         }

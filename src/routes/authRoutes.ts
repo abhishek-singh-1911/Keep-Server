@@ -20,6 +20,7 @@ const generateToken = (id: string) => {
 router.post('/register', async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
+    console.log(`[Auth] Registration attempt for email: ${email}`);
 
     // Simple validation
     if (!name || !email || !password) {
@@ -42,6 +43,7 @@ router.post('/register', async (req: Request, res: Response) => {
       email: user.email,
       token: generateToken(user._id.toString()),
     });
+    console.log(`[Auth] User registered successfully: ${user._id}`);
   } catch (error) {
     // Handle MongoDB unique key error (e.g., if findOne misses a race condition)
     if ((error as any).code === 11000) {
@@ -58,6 +60,7 @@ router.post('/register', async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+    console.log(`[Auth] Login attempt for email: ${email}`);
 
     // Check for user
     const user = await User.findOne({ email });
@@ -70,7 +73,9 @@ router.post('/login', async (req: Request, res: Response) => {
         email: user.email,
         token: generateToken(user._id.toString()),
       });
+      console.log(`[Auth] User logged in successfully: ${user._id}`);
     } else {
+      console.warn(`[Auth] Invalid login attempt for email: ${email}`);
       res.status(401).json({ message: 'Invalid email or password.' });
     }
   } catch (error) {

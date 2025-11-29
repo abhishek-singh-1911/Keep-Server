@@ -27,39 +27,43 @@ io.on("connection", (socket) => {
 
   socket.on("join_list", (listId) => {
     socket.join(listId);
-    console.log(`Socket ${socket.id} joined list ${listId}`);
+    console.log(`[Socket] ${socket.id} joined list room: ${listId}`);
   });
 
   socket.on("leave_list", (listId) => {
     socket.leave(listId);
-    console.log(`Socket ${socket.id} left list ${listId}`);
+    console.log(`[Socket] ${socket.id} left list room: ${listId}`);
   });
 
   socket.on("update_list", (data) => {
     const { listId, ...changes } = data;
+    console.log(`[Socket] List update received for ${listId}:`, Object.keys(changes));
     socket.to(listId).emit("list_updated", changes);
   });
 
   socket.on("collaborator_added", (data) => {
     const { listId, userId } = data;
+    console.log(`[Socket] Collaborator added to list ${listId}, user: ${userId}`);
     // Broadcast to all users in the list room (including the new collaborator)
     io.to(listId).emit("collaborator_added", { listId });
   });
 
   socket.on("collaborator_removed", (data) => {
     const { listId, userId } = data;
+    console.log(`[Socket] Collaborator removed from list ${listId}, user: ${userId}`);
     // Broadcast to all users in the list room
     io.to(listId).emit("collaborator_removed", { listId });
   });
 
   socket.on("permission_changed", (data) => {
     const { listId, userId, permission } = data;
+    console.log(`[Socket] Permission changed for list ${listId}, user: ${userId} -> ${permission}`);
     // Broadcast to all users in the list room
     io.to(listId).emit("permission_changed", { listId });
   });
 
-  socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
+  socket.on("disconnect", (reason) => {
+    console.log(`[Socket] Client disconnected: ${socket.id}, Reason: ${reason}`);
   });
 });
 
@@ -118,6 +122,7 @@ const connectDB = async () => {
 // Base Route (Health Check)
 // ------------------------------------
 app.get('/', (req: Request, res: Response) => {
+  console.log('[Server] Health check ping received');
   res.send('Keep Server is running!');
 });
 
